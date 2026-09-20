@@ -54,30 +54,39 @@ export async function POST(req: Request) {
       // ----------------------------------------------------
       const ttsQuestUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speaker}`;
       
-      const initRes = await fetch(ttsQuestUrl);
+      const initRes = await fetch(ttsQuestUrl, {
+        // Vercelのタイムアウト（10秒）対策として初期リクエストにも制限をかける
+        signal: AbortSignal.timeout(5000) 
+      });
+      
       if (!initRes.ok) {
-        throw new Error(`TTS QUEST API failed with status ${initRes.status}`);
+        const errText = await initRes.text().catch(() => "");
+        throw new Error(`TTS QUEST API failed with status ${initRes.status}. Details: ${errText}`);
       }
       
       const json = await initRes.json();
       const downloadUrl = json.wavDownloadUrl || json.mp3StreamingUrl;
       
       if (!downloadUrl) {
-        throw new Error("No download URL returned from TTS QUEST API");
+        throw new Error(`No download URL returned from TTS QUEST API. Response: ${JSON.stringify(json)}`);
       }
 
-      // 音声データ生成完了までURLをフェッチして待機（最大20秒）
+      // 音声データ生成完了までURLをフェッチして待機
+      // Vercel Hobbyプランの10秒制限を超えないよう、最大待機時間を約7秒（7000ms）に制限
+      const startTime = Date.now();
+      const MAX_WAIT_MS = 7000;
+      
       let audioRes = await fetch(downloadUrl);
       let attempts = 0;
       
-      while (!audioRes.ok && attempts < 20) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+      while (!audioRes.ok && (Date.now() - startTime) < MAX_WAIT_MS) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // 0.5秒ごとにポーリング
         audioRes = await fetch(downloadUrl);
         attempts++;
       }
 
       if (!audioRes.ok) {
-        throw new Error(`Failed to download audio from TTS QUEST after ${attempts} retries`);
+        throw new Error(`TTS QUEST Audio not ready after ${attempts} retries (${Date.now() - startTime}ms). Status: ${audioRes.status}`);
       }
 
       const arrayBuffer = await audioRes.arrayBuffer();
@@ -91,14 +100,16 @@ export async function POST(req: Request) {
       });
     }
   } catch (error) {
-    console.error("Voice API Backend Error:", error);
+    // Vercel ログに出力（スタックトレース含む）
+    console.error("【Voice API Backend Error】", error);
     
+    // Vercelがクラッシュして500を返す前に、明示的に502(Bad Gateway)を返す
     return NextResponse.json(
       { 
         error: "Failed to synthesize voice", 
         details: error instanceof Error ? error.message : String(error) 
       }, 
-      { status: 500 }
+      { status: 502 }
     );
   }
 }
