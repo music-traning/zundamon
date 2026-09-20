@@ -34,6 +34,11 @@ export function WelcomeScreen({ onNewGame, onLoadGame }: WelcomeScreenProps) {
           </button>
         </div>
       </div>
+      <div className="absolute bottom-6 left-0 right-0 text-center text-sm font-bold text-green-700 hover:text-green-900 transition-colors">
+        <a href="https://note.com/jazzy_begin/" target="_blank" rel="noopener noreferrer">
+          &copy;2026 United Make Associates
+        </a>
+      </div>
       <SaveSlotModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
