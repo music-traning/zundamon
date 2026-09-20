@@ -5,53 +5,92 @@ export async function POST(req: Request) {
     const { text, speakerId } = await req.json();
     
     const voicevoxUrl = process.env.VOICEVOX_URL;
-    if (!voicevoxUrl) {
-      throw new Error("Environment variable VOICEVOX_URL is not set. Please set it to the VOICEVOX API endpoint (e.g., http://127.0.0.1:50021).");
-    }
-
     const speaker = speakerId ?? 3; // デフォルトをずんだもんに設定
 
-    // 1段目: audio_query
-    const queryUrl = `${voicevoxUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`;
-    const queryRes = await fetch(queryUrl, {
-      method: "POST",
-    });
-    
-    if (!queryRes.ok) {
-      const errorText = await queryRes.text().catch(() => "No error body");
-      throw new Error(`VOICEVOX audio_query failed with status ${queryRes.status}: ${errorText}`);
-    }
-    
-    const queryJson = await queryRes.json();
+    if (voicevoxUrl) {
+      // ----------------------------------------------------
+      // ローカル/指定サーバーのVOICEVOXを利用 (VOICEVOX_URLあり)
+      // ----------------------------------------------------
+      // 1段目: audio_query
+      const queryUrl = `${voicevoxUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`;
+      const queryRes = await fetch(queryUrl, {
+        method: "POST",
+      });
+      
+      if (!queryRes.ok) {
+        const errorText = await queryRes.text().catch(() => "No error body");
+        throw new Error(`VOICEVOX audio_query failed with status ${queryRes.status}: ${errorText}`);
+      }
+      
+      const queryJson = await queryRes.json();
 
-    // 2段目: synthesis
-    const synthUrl = `${voicevoxUrl}/synthesis?speaker=${speaker}`;
-    const synthRes = await fetch(synthUrl, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Accept": "audio/wav"
-      },
-      body: JSON.stringify(queryJson),
-    });
-    
-    if (!synthRes.ok) {
-      const errorText = await synthRes.text().catch(() => "No error body");
-      throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}: ${errorText}`);
+      // 2段目: synthesis
+      const synthUrl = `${voicevoxUrl}/synthesis?speaker=${speaker}`;
+      const synthRes = await fetch(synthUrl, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "audio/wav"
+        },
+        body: JSON.stringify(queryJson),
+      });
+      
+      if (!synthRes.ok) {
+        const errorText = await synthRes.text().catch(() => "No error body");
+        throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}: ${errorText}`);
+      }
+      
+      const arrayBuffer = await synthRes.arrayBuffer();
+      
+      return new Response(arrayBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": "audio/wav",
+        },
+      });
+    } else {
+      // ----------------------------------------------------
+      // 有志クラウドAPIを利用 (VOICEVOX_URLなし / Vercel等)
+      // ----------------------------------------------------
+      const ttsQuestUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speaker}`;
+      
+      const initRes = await fetch(ttsQuestUrl);
+      if (!initRes.ok) {
+        throw new Error(`TTS QUEST API failed with status ${initRes.status}`);
+      }
+      
+      const json = await initRes.json();
+      const downloadUrl = json.wavDownloadUrl || json.mp3StreamingUrl;
+      
+      if (!downloadUrl) {
+        throw new Error("No download URL returned from TTS QUEST API");
+      }
+
+      // 音声データ生成完了までURLをフェッチして待機（最大20秒）
+      let audioRes = await fetch(downloadUrl);
+      let attempts = 0;
+      
+      while (!audioRes.ok && attempts < 20) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
+        audioRes = await fetch(downloadUrl);
+        attempts++;
+      }
+
+      if (!audioRes.ok) {
+        throw new Error(`Failed to download audio from TTS QUEST after ${attempts} retries`);
+      }
+
+      const arrayBuffer = await audioRes.arrayBuffer();
+      const isMp3 = downloadUrl.includes(".mp3") || downloadUrl === json.mp3StreamingUrl;
+      
+      return new Response(arrayBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": isMp3 ? "audio/mpeg" : "audio/wav",
+        },
+      });
     }
-    
-    const arrayBuffer = await synthRes.arrayBuffer();
-    
-    // 正しいレスポンス返却 (Web標準の Response API を使用)
-    return new Response(arrayBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/wav",
-      },
-    });
-    
   } catch (error) {
-    // ターミナル側に詳細なエラーログとスタックトレースを出力
     console.error("Voice API Backend Error:", error);
     
     return NextResponse.json(
