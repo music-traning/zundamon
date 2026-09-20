@@ -22,7 +22,9 @@ export function useAppState() {
   const toggleMute = () => setIsMuted(prev => !prev);
 
   const initAudio = async () => {
+    if (typeof window === 'undefined') return;
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
     const ctx = new AudioContext();
     await ctx.resume();
     setHasStarted(true);

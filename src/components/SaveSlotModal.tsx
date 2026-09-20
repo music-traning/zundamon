@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import { Play, Save, Trash2, X } from "lucide-react";
 
@@ -14,11 +15,13 @@ export function SaveSlotModal({ isOpen, onClose, onLoad, onSave }: SaveSlotModal
   const [slots, setSlots] = useState<SaveSlot[]>([]);
 
   const loadSlots = () => {
-    const data = localStorage.getItem('zundamon_saves');
-    if (data) {
-      setSlots(JSON.parse(data));
-    } else {
-      setSlots(Array.from({length: 10}, (_, i) => ({ id: i+1, title: "", prompt: "", updatedAt: "" })));
+    if (typeof window !== 'undefined') {
+      const data = localStorage.getItem('zundamon_saves');
+      if (data) {
+        setSlots(JSON.parse(data));
+      } else {
+        setSlots(Array.from({length: 10}, (_, i) => ({ id: i+1, title: "", prompt: "", updatedAt: "" })));
+      }
     }
   };
 
@@ -31,7 +34,9 @@ export function SaveSlotModal({ isOpen, onClose, onLoad, onSave }: SaveSlotModal
   const handleDelete = (slotId: number) => {
     if (!confirm("このデータを削除してもよろしいですか？")) return;
     const newSlots = slots.map(s => s.id === slotId ? { id: slotId, title: "", prompt: "", updatedAt: "" } : s);
-    localStorage.setItem('zundamon_saves', JSON.stringify(newSlots));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zundamon_saves', JSON.stringify(newSlots));
+    }
     setSlots(newSlots);
   };
 

@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useRef } from "react";
 
 export function TransitionEffect({ isMuted }: { isMuted: boolean }) {

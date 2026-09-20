@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useRef, useEffect } from "react";
 import { SaveSlotModal, SaveSlot } from "./SaveSlotModal";
 import type { ChatLogEntry } from "@/hooks/useAppState";
@@ -289,6 +290,7 @@ export function ZundamonChat({ zundamonPrompt, zundamonTitle, isMuted, toggleMut
   };
 
   const handleSave = (slotId: number) => {
+    if (typeof window === 'undefined') return;
     const data = localStorage.getItem('zundamon_saves');
     const slots: SaveSlot[] = data ? JSON.parse(data) : Array.from({length: 10}, (_, i) => ({ id: i+1, title: "", prompt: "", updatedAt: "" }));
     

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import { SaveSlotModal, SaveSlot } from "./SaveSlotModal";
 
