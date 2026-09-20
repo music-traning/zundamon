@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
 interface InterviewChatProps {
-  onForceTransition: (prompt?: string, title?: string, history?: any[]) => void;
-  isTransitioning: boolean;
+  onTransitionToZundamon: (prompt?: string, title?: string, history?: any[]) => void;
   isMuted: boolean;
   toggleMute: () => void;
 }
@@ -27,7 +26,7 @@ type AudioQueueItem = {
   shouldType?: boolean;
 };
 
-export function InterviewChat({ onForceTransition, isTransitioning, isMuted, toggleMute }: InterviewChatProps) {
+export function InterviewChat({ onTransitionToZundamon, isMuted, toggleMute }: InterviewChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, text: "大変なの！ずんだもんが記憶喪失になっちゃったわ！あなた、ずんだもんの過去を知っているんでしょう？あの子が元々どんな性格で、どんな風に話していたか、思い出せるだけ教えてちょうだい！", sender: "other" },
   ]);
@@ -90,7 +89,7 @@ export function InterviewChat({ onForceTransition, isTransitioning, isMuted, tog
           sender: m.sender === "other" ? "metan" : "me",
           text: m.text
         }));
-        onForceTransition(transitionDataRef.current.prompt, transitionDataRef.current.title, history);
+        onTransitionToZundamon(transitionDataRef.current.prompt, transitionDataRef.current.title, history);
         transitionDataRef.current = null;
       }
       checkUnlock();
@@ -295,7 +294,7 @@ export function InterviewChat({ onForceTransition, isTransitioning, isMuted, tog
             sender: m.sender === "other" ? "metan" : "me",
             text: m.text
           }));
-          onForceTransition(prompt, title, history);
+          onTransitionToZundamon(prompt, title, history);
         }
       }
 
@@ -357,11 +356,6 @@ export function InterviewChat({ onForceTransition, isTransitioning, isMuted, tog
             </div>
           </div>
         )}
-        {isTransitioning && (
-          <div className="text-center text-white font-bold animate-pulse mt-8 bg-black/30 rounded-lg p-2 inline-block">
-            ... 通信が不安定です ...
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
       
@@ -371,7 +365,7 @@ export function InterviewChat({ onForceTransition, isTransitioning, isMuted, tog
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          disabled={isTransitioning || isAborted || isProcessing}
+          disabled={isAborted || isProcessing}
           className={`flex-1 rounded-full px-4 py-2 focus:outline-none transition-colors ${
             isProcessing ? "bg-gray-200 opacity-75 cursor-not-allowed" : "bg-gray-100"
           }`}
@@ -379,7 +373,7 @@ export function InterviewChat({ onForceTransition, isTransitioning, isMuted, tog
         />
         <button 
           onClick={handleSend} 
-          disabled={isTransitioning || isAborted || isProcessing}
+          disabled={isAborted || isProcessing}
           className="text-blue-500 font-bold p-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           送信

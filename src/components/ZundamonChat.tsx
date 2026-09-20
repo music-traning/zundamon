@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { SaveSlotModal, SaveSlot } from "./SaveSlotModal";
 import type { ChatLogEntry } from "@/hooks/useAppState";
-import { Save, Volume2, VolumeX } from "lucide-react";
+import { Save, Volume2, VolumeX, Home } from "lucide-react";
 
 interface ZundamonChatProps {
   zundamonPrompt: string;
@@ -12,6 +12,7 @@ interface ZundamonChatProps {
   metanHistory: ChatLogEntry[];
   initialMessages?: Message[] | null;
   onLoadGame: (prompt: string, title: string, messages?: Message[]) => void;
+  onResetApp: () => void;
 }
 
 export type Message = {
@@ -32,7 +33,7 @@ type AudioQueueItem = {
   shouldType?: boolean;
 };
 
-export function ZundamonChat({ zundamonPrompt, zundamonTitle, isMuted, toggleMute, metanHistory, initialMessages, onLoadGame }: ZundamonChatProps) {
+export function ZundamonChat({ zundamonPrompt, zundamonTitle, isMuted, toggleMute, metanHistory, initialMessages, onLoadGame, onResetApp }: ZundamonChatProps) {
   const [messages, setMessages] = useState<Message[]>(
     initialMessages && initialMessages.length > 0 
       ? initialMessages 
@@ -322,11 +323,23 @@ export function ZundamonChat({ zundamonPrompt, zundamonTitle, isMuted, toggleMut
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
+            onClick={() => {
+              if(confirm("タイトルに戻りますか？セーブしていないデータは失われます。")) {
+                onResetApp();
+              }
+            }}
+            className="p-2 bg-green-500 hover:bg-green-400 text-white rounded-full transition-colors shadow-sm flex items-center justify-center"
+            title="タイトルに戻る"
+          >
+            <Home size={18} />
+          </button>
+          <button
             onClick={toggleMute}
             className="p-2 bg-green-500 hover:bg-green-400 text-white rounded-full transition-colors shadow-sm flex items-center justify-center"
             title={isMuted ? "ミュート解除" : "ミュート"}
           >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            <VolumeX size={18} className={isMuted ? "block" : "hidden"} />
+            <Volume2 size={18} className={!isMuted ? "block" : "hidden"} />
           </button>
           <button 
             onClick={() => setIsModalOpen(true)} 

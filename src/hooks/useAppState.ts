@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export type AppState = "interview" | "transition" | "zundamon";
+export type AppState = "interview" | "zundamon";
 
 export type ChatLogEntry = {
   sender: string;
@@ -44,16 +44,23 @@ export function useAppState() {
     setAppState("zundamon");
   };
 
-  const forceTransition = (prompt: string = "", title: string = "", history: ChatLogEntry[] = []) => {
+  const resetApp = () => {
+    setHasStarted(false);
+    setAppState("interview");
+    setZundamonPrompt("");
+    setZundamonTitle("");
+    setZundamonMessages(null);
+    setMetanHistory([]);
+    setGameId(prev => prev + 1);
+  };
+
+  const transitionToZundamon = (prompt: string = "", title: string = "", history: ChatLogEntry[] = []) => {
     setZundamonPrompt(prompt);
     setZundamonTitle(title);
     setMetanHistory(history);
     setZundamonMessages(null);
     setGameId(prev => prev + 1);
-    setAppState("transition");
-    setTimeout(() => {
-      setAppState("zundamon");
-    }, 5000); // 5 seconds of glitch/black screen
+    setAppState("zundamon");
   };
 
   return {
@@ -67,7 +74,8 @@ export function useAppState() {
     isMuted,
     startNewGame,
     loadGame,
-    forceTransition,
+    transitionToZundamon,
+    resetApp,
     toggleMute,
   };
 }
